@@ -24,12 +24,8 @@
   }
 
   /* Remove audio download option */
-  audio::-internal-media-controls-download-button {
-    display: none;
-  }
-  audio::-webkit-media-controls-enclosure {
-    overflow: hidden;
-  }
+  audio::-internal-media-controls-download-button { display: none; }
+  audio::-webkit-media-controls-enclosure { overflow: hidden; }
 
   /* Skip button */
   #skipButton {
@@ -42,9 +38,7 @@
     cursor: pointer;
     display: none;
   }
-  #skipButton:hover {
-    background: #000;
-  }
+  #skipButton:hover { background: #000; }
 </style>
 
 </head>
@@ -52,7 +46,7 @@
 
 <!-- TEST MODE BANNER -->
 <div id="testBanner">
-  ⚠ TEST MODE — DATA WILL NOT BE USED ⚠
+  ⚠ TEST MODE — DATA WILL BE RECORDED IN SHEETS ⚠
 </div>
 
 <h2>Music Listening Study</h2>
@@ -126,7 +120,7 @@
 // --------------------------------------------------
 // TEST MODE BANNER
 // --------------------------------------------------
-const TEST_MODE = true;   // <--- SET TO true WHEN TESTING
+const TEST_MODE = false;   // <-- Set true for testing
 if (TEST_MODE) {
   document.getElementById("testBanner").style.display = "block";
 }
@@ -134,8 +128,8 @@ if (TEST_MODE) {
 // --------------------------------------------------
 // ENDPOINTS
 // --------------------------------------------------
-const GROUP_ENDPOINT = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
-const LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
+const GROUP_ENDPOINT = "Yhttps://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
+const LOG_ENDPOINT   = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
 
 // --------------------------------------------------
 // SONG ORDERS
@@ -162,7 +156,7 @@ const songOrders = {
     {name:"Song 3 Standard", file:"144,000-1.mp3"}
   ]
 };
-
+  
 // --------------------------------------------------
 // VARIABLES
 // --------------------------------------------------
@@ -174,6 +168,7 @@ let currentSongList = [];
 const player = document.getElementById("player");
 const source  = document.getElementById("audioSource");
 const statusDiv = document.getElementById("status");
+const skipButton = document.getElementById("skipButton");
 
 // --------------------------------------------------
 // GET GROUP
@@ -203,7 +198,7 @@ function loadSong(index){
   player.load();
   player.play();
 
-  document.getElementById("skipButton").style.display = "inline-block";
+  skipButton.style.display = "inline-block";
 
   statusDiv.textContent = `Playing ${currentSongList[index].name} (${index+1}/3)`;
 
@@ -211,9 +206,9 @@ function loadSong(index){
 }
 
 // --------------------------------------------------
-// SKIP SONG BUTTON
+// SKIP BUTTON
 // --------------------------------------------------
-document.getElementById("skipButton").onclick = () => {
+skipButton.onclick = () => {
   logEvent("skip", player.currentTime, currentSongList[currentSongIndex].name);
   currentSongIndex++;
   loadSong(currentSongIndex);
@@ -232,7 +227,7 @@ player.onended = ()=>{
 };
 
 // --------------------------------------------------
-// LOGGING FUNCTION
+// LOG FUNCTION
 // --------------------------------------------------
 function logEvent(type, time, song){
   fetch(LOG_ENDPOINT, {
@@ -248,22 +243,16 @@ function logEvent(type, time, song){
       userAgent: navigator.userAgent,
       testMode: TEST_MODE
     })
-  });
+  }).catch(err => console.error("Logging failed:", err));
 }
 
 // --------------------------------------------------
 // SHOW SURVEY
 // --------------------------------------------------
 function showSurvey(){
-  // Stop the music completely
   player.pause();
-  player.currentTime = 0;
-
-  // Hide audio and skip button
   player.style.display = "none";
-  document.getElementById("skipButton").style.display = "none";
-
-  // Show survey
+  skipButton.style.display = "none";
   document.getElementById("survey").style.display = "block";
   statusDiv.textContent = "Please complete the survey.";
 }
@@ -296,8 +285,13 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
       testMode: TEST_MODE
     })
   }).then(()=>{
-    statusDiv.textContent = "Survey submitted. Thank you!";
+    statusDiv.textContent = TEST_MODE
+      ? "Survey submitted (TEST MODE). Data recorded in Google Sheets."
+      : "Survey submitted. Thank you!";
     document.getElementById("survey").style.display = "none";
+  }).catch(err=>{
+    statusDiv.textContent = "Error submitting survey. Please try again.";
+    console.error("Submit error:", err);
   });
 });
 
@@ -305,3 +299,4 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
 
 </body>
 </html>
+
