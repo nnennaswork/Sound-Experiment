@@ -14,6 +14,19 @@
 </head>
 <body>
 
+<!-- TEST MODE BANNER -->
+<div id="testBanner" style="
+  background:#ff4444;
+  color:white;
+  padding:12px;
+  font-size:20px;
+  font-weight:bold;
+  text-align:center;
+  display:none;
+">
+  TEST MODE — DATA WILL NOT BE USED
+</div>
+
 <h2>Music Listening Study</h2>
 <div id="status"></div>
 
@@ -26,7 +39,7 @@
   <h3>Survey Questions</h3>
   <form id="surveyForm">
 
-    <!-- Q1 Lyrics-->
+    <!-- Q1 Lyrics -->
     <label>1. What lyrics do you remember? (Song 1)</label>
     <textarea id="q1" required></textarea>
 
@@ -47,7 +60,8 @@
     <!-- Q4 Ranking -->
     <label>4. Rank the songs by enjoyment:</label>
     <ol>
-      <li>Song 1:
+      <li>
+        Song 1:
         <select id="q6" required>
           <option value="">Rank</option>
           <option value="1">1 (most enjoyable)</option>
@@ -55,7 +69,9 @@
           <option value="3">3 (least enjoyable)</option>
         </select>
       </li>
-      <li>Song 2:
+
+      <li>
+        Song 2:
         <select id="q7" required>
           <option value="">Rank</option>
           <option value="1">1 (most enjoyable)</option>
@@ -63,7 +79,9 @@
           <option value="3">3 (least enjoyable)</option>
         </select>
       </li>
-      <li>Song 3:
+
+      <li>
+        Song 3:
         <select id="q8" required>
           <option value="">Rank</option>
           <option value="1">1 (most enjoyable)</option>
@@ -79,37 +97,49 @@
 
 
 <script>
-// -----------------------------------
+// --------------------------------------------------
+// TEST MODE BANNER SWITCH
+// --------------------------------------------------
+const TEST_MODE = false;   // <--- CHANGE TO true WHEN YOU WANT TEST MODE
+
+if (TEST_MODE) {
+  document.getElementById("testBanner").style.display = "block";
+}
+
+
+// --------------------------------------------------
 // URLs
-// -----------------------------------
+// --------------------------------------------------
 const GROUP_ENDPOINT = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
 const LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
 
-// -----------------------------------
-// Song orders (A, B, C, D)
-// -----------------------------------
+
+// --------------------------------------------------
+// Song orders (A–D)
+// --------------------------------------------------
 const songOrders = {
   A: [
-    {name:"Song 1 Loud", file:"song1_loud.mp3"},
-    {name:"Song 2 Standard", file:"song2_standard.mp3"},
-    {name:"Song 3 Quiet", file:"song3_quiet.mp3"}
+    {name:"Song 1 Loud", file:"144,000-1.mp3"},
+    {name:"Song 2 Standard", file:"144,000-1.mp3"},
+    {name:"Song 3 Quiet", file:"144,000-1.mp3"}
   ],
   B: [
-    {name:"Song 1 Quiet", file:"song1_quiet.mp3"},
-    {name:"Song 2 Loud", file:"song2_loud.mp3"},
-    {name:"Song 3 Standard", file:"song3_standard.mp3"}
+    {name:"Song 1 Quiet", file:"144,000-1.mp3"},
+    {name:"Song 2 Loud", file:"144,000-1.mp3"},
+    {name:"Song 3 Standard", file:"144,000-1.mp3"}
   ],
   C: [
-    {name:"Song 1 Standard", file:"song1_standard.mp3"},
-    {name:"Song 2 Quiet", file:"song2_quiet.mp3"},
-    {name:"Song 3 Loud", file:"song3_loud.mp3"}
+    {name:"Song 1 Standard", file:"144,000-1.mp3"},
+    {name:"Song 2 Quiet", file:"144,000-1.mp3"},
+    {name:"Song 3 Loud", file:"144,000-1.mp3"}
   ],
   D: [
-    {name:"Song 1 Standard", file:"song1_standard.mp3"},
-    {name:"Song 2 Standard", file:"song2_standard.mp3"},
-    {name:"Song 3 Standard", file:"song3_standard.mp3"}
+    {name:"Song 1 Standard", file:"144,000-1.mp3"},
+    {name:"Song 2 Standard", file:"144,000-1.mp3"},
+    {name:"Song 3 Standard", file:"144,000-1.mp3"}
   ]
 };
+
 
 // --------------------------------------------------
 // VARIABLES
@@ -122,6 +152,7 @@ let currentSongList = [];
 const player = document.getElementById("player");
 const source  = document.getElementById("audioSource");
 const statusDiv = document.getElementById("status");
+
 
 // --------------------------------------------------
 // GET GROUP FROM SERVER
@@ -138,6 +169,7 @@ fetch(GROUP_ENDPOINT)
   .catch(()=>{
     statusDiv.textContent = "Error retrieving group. Please refresh.";
   });
+
 
 // --------------------------------------------------
 // LOAD AND PLAY SONG
@@ -157,6 +189,7 @@ function loadSong(index){
   logEvent("play", 0, currentSongList[index].name);
 }
 
+
 // --------------------------------------------------
 // LOGGING FUNCTION
 // --------------------------------------------------
@@ -172,10 +205,11 @@ function logEvent(type, time, song){
       event: type,
       time: time,
       userAgent: navigator.userAgent,
-      testMode: true
+      testMode: TEST_MODE
     })
   });
 }
+
 
 // --------------------------------------------------
 // PLAYER EVENTS
@@ -188,6 +222,7 @@ player.onended = ()=>{
   currentSongIndex++;
   loadSong(currentSongIndex);
 };
+
 
 // --------------------------------------------------
 // SURVEY SUBMISSION
@@ -213,7 +248,8 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
       type: "survey",
       participant: participantID,
       group: participantGroup,
-      responses: responses
+      responses: responses,
+      testMode: TEST_MODE
     })
   }).then(()=>{
     statusDiv.textContent = "Survey submitted. Thank you!";
@@ -225,3 +261,4 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
 
 </body>
 </html>
+
