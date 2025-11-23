@@ -7,9 +7,19 @@
     body { font-family: Arial, sans-serif; padding: 20px; }
     h2 { color: #333; }
     #status { margin-top: 10px; font-weight: bold; }
+    #testBanner {
+      background: red;
+      color: white;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-weight: bold;
+      display: none;
+    }
   </style>
 </head>
 <body>
+
+<div id="testBanner">TEST MODE IS ON — DATA WILL BE MARKED AS TEST</div>
 
 <h2>Music Listening Study</h2>
 <p>Please listen to all three tracks in order. You may stop at any time.</p>
@@ -22,10 +32,21 @@
 <div id="status"></div>
 
 <script>
-  // === 1. Google Apps Script Web App URL for group assignment ===
-  const GROUP_ENDPOINT = "YOUR_GROUP_ENDPOINT_URL"; // Replace with your Apps Script URL
+  // ================================================
+  // 🔧 TEST MODE SWITCH
+  // Set to true when testing — false for real study
+  // ================================================
+  const TEST_MODE = true;   // ← change to false for real experiment
 
-  // === 2. Define song orders per group ===
+  // Show banner if in test mode
+  if (TEST_MODE) {
+    document.getElementById("testBanner").style.display = "block";
+  }
+
+  // === 1. Google Apps Script Web App URL for group assignment ===
+  const GROUP_ENDPOINT = "YOUR_GROUP_ENDPOINT_URL";
+
+  // === 2. Song orders for groups A, B, C ===
   const songOrders = {
     A: [
       {name: "Song 1", file: "song1_loud.mp3"},
@@ -45,7 +66,7 @@
   };
 
   // === 3. Logging endpoint ===
-  const LOG_ENDPOINT = "YOUR_LOGGING_ENDPOINT_URL"; // Replace with Apps Script logging URL
+  const LOG_ENDPOINT = "YOUR_LOGGING_ENDPOINT_URL";
 
   // === 4. Participant ID ===
   let participantID = "P" + Math.floor(Math.random() * 1000000);
@@ -57,7 +78,7 @@
   const source = document.getElementById("audioSource");
   const statusDiv = document.getElementById("status");
 
-  // === 5. Fetch participant group from Google Apps Script ===
+  // === 5. Fetch group assignment ===
   fetch(GROUP_ENDPOINT)
     .then(r => r.json())
     .then(data => {
@@ -82,7 +103,7 @@
     logEvent("play", 0, currentSongList[index].name);
   }
 
-  // === 7. Logging function ===
+  // === 7. Logging function with TEST FLAG ===
   function logEvent(eventType, timeValue, songName){
     fetch(LOG_ENDPOINT, {
       method: "POST",
@@ -92,6 +113,7 @@
         event: eventType,
         time: timeValue,
         song: songName,
+        testMode: TEST_MODE, // ← THIS MARKS THE ROW AS TEST OR REAL
         userAgent: navigator.userAgent,
         timestamp: new Date().toISOString()
       })
@@ -100,12 +122,15 @@
 
   // === 8. Track player events ===
   player.onpause = () => logEvent("pause", player.currentTime, currentSongList[currentSongIndex].name);
+
   player.onseeking = () => logEvent("seek", player.currentTime, currentSongList[currentSongIndex].name);
+
   player.onended = () => {
     logEvent("complete", player.duration, currentSongList[currentSongIndex].name);
     currentSongIndex++;
     loadSong(currentSongIndex);
   };
+
   window.addEventListener("beforeunload", () => {
     logEvent("exit", player.currentTime, currentSongList[currentSongIndex]?.name || "unknown");
   });
