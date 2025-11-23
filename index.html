@@ -9,37 +9,72 @@
   .survey { display: none; margin-top: 20px; }
   textarea { width: 100%; height: 80px; }
   input, select { width: 100%; padding: 5px; margin: 5px 0; }
+
+  /* -------------------------------------------
+     BIG, ALWAYS-VISIBLE TEST MODE BANNER 
+     ------------------------------------------- */
+  #testBanner {
+    background: #cc0000;
+    color: white;
+    padding: 16px;
+    font-size: 26px;
+    font-weight: bold;
+    text-align: center;
+    border: 3px solid white;
+    position: sticky;
+    top: 0;
+    z-index: 9999;
+    display: none;
+  }
+
+  /* Remove audio download option (most browsers) */
+  audio::-internal-media-controls-download-button {
+    display: none;
+  }
+  audio::-webkit-media-controls-enclosure {
+    overflow: hidden;
+  }
+  audio::-webkit-media-controls-panel {
+    width: calc(100% + 30px);
+  }
+
+  #skipButton {
+    margin-top: 15px;
+    padding: 10px 16px;
+    background: #444;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #skipButton:hover {
+    background: #000;
+  }
 </style>
 
 </head>
 <body>
 
 <!-- TEST MODE BANNER -->
-<div id="testBanner" style="
-  background:#ff4444;
-  color:white;
-  padding:12px;
-  font-size:20px;
-  font-weight:bold;
-  text-align:center;
-  display:none;
-">
-  TEST MODE — DATA WILL NOT BE USED
+<div id="testBanner">
+  ⚠ TEST MODE — DATA WILL NOT BE USED ⚠
 </div>
 
 <h2>Music Listening Study</h2>
 <div id="status"></div>
 
-<audio id="player" controls>
+<audio id="player" controls controlsList="nodownload">
   <source id="audioSource" src="">
 </audio>
+
+<!-- Skip Button -->
+<button id="skipButton">Skip to Survey</button>
 
 <!-- SURVEY -->
 <div id="survey" class="survey">
   <h3>Survey Questions</h3>
   <form id="surveyForm">
 
-    <!-- Q1 Lyrics -->
     <label>1. What lyrics do you remember? (Song 1)</label>
     <textarea id="q1" required></textarea>
 
@@ -49,24 +84,21 @@
     <label>Song 3</label>
     <textarea id="q3" required></textarea>
 
-    <!-- Q2 Listening device -->
     <label>2. How did you listen to the music? (Headphones, EarPods, speakers...)</label>
     <input type="text" id="q4" required>
 
-    <!-- Q3 Volume adjustments -->
     <label>3. Did you adjust the volume? If so, when/which song?</label>
     <input type="text" id="q5" required>
 
-    <!-- Q4 Ranking -->
     <label>4. Rank the songs by enjoyment:</label>
     <ol>
       <li>
         Song 1:
         <select id="q6" required>
           <option value="">Rank</option>
-          <option value="1">1 (most enjoyable)</option>
+          <option value="1">1 (most)</option>
           <option value="2">2</option>
-          <option value="3">3 (least enjoyable)</option>
+          <option value="3">3 (least)</option>
         </select>
       </li>
 
@@ -74,9 +106,9 @@
         Song 2:
         <select id="q7" required>
           <option value="">Rank</option>
-          <option value="1">1 (most enjoyable)</option>
+          <option value="1">1 (most)</option>
           <option value="2">2</option>
-          <option value="3">3 (least enjoyable)</option>
+          <option value="3">3 (least)</option>
         </select>
       </li>
 
@@ -84,9 +116,9 @@
         Song 3:
         <select id="q8" required>
           <option value="">Rank</option>
-          <option value="1">1 (most enjoyable)</option>
+          <option value="1">1 (most)</option>
           <option value="2">2</option>
-          <option value="3">3 (least enjoyable)</option>
+          <option value="3">3 (least)</option>
         </select>
       </li>
     </ol>
@@ -98,9 +130,9 @@
 
 <script>
 // --------------------------------------------------
-// TEST MODE BANNER SWITCH
+// TEST MODE BANNER (VISIBLE WHEN TRUE)
 // --------------------------------------------------
-const TEST_MODE = true;   // <--- CHANGE TO true WHEN YOU WANT TEST MODE
+const TEST_MODE = true;   // <--- CHANGE TRUE/FALSE
 
 if (TEST_MODE) {
   document.getElementById("testBanner").style.display = "block";
@@ -162,7 +194,6 @@ fetch(GROUP_ENDPOINT)
   .then(data=>{
     participantGroup = data.group;
     currentSongList = songOrders[participantGroup];
-
     statusDiv.textContent = "Loading first song...";
     loadSong(0);
   })
@@ -176,9 +207,7 @@ fetch(GROUP_ENDPOINT)
 // --------------------------------------------------
 function loadSong(index){
   if(index >= currentSongList.length){
-    player.style.display = "none";
-    statusDiv.textContent = "Survey loading...";
-    document.getElementById("survey").style.display = "block";
+    showSurvey();
     return;
   }
 
@@ -187,6 +216,22 @@ function loadSong(index){
   player.play();
 
   logEvent("play", 0, currentSongList[index].name);
+}
+
+
+// --------------------------------------------------
+// SKIP BUTTON → jump straight to survey
+// --------------------------------------------------
+document.getElementById("skipButton").onclick = () => {
+  logEvent("skip", player.currentTime, currentSongList?.[currentSongIndex]?.name || "");
+  showSurvey();
+};
+
+function showSurvey() {
+  player.style.display = "none";
+  document.getElementById("skipButton").style.display = "none";
+  document.getElementById("survey").style.display = "block";
+  statusDiv.textContent = "Please complete the survey.";
 }
 
 
@@ -261,4 +306,5 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
 
 </body>
 </html>
+
 
