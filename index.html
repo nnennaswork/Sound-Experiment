@@ -7,20 +7,9 @@
     body { font-family: Arial, sans-serif; padding: 20px; }
     h2 { color: #333; }
     #status { margin-top: 10px; font-weight: bold; }
-    #testBanner {
-      background: red;
-      color: white;
-      padding: 10px;
-      margin-bottom: 15px;
-      font-weight: bold;
-      display: none;
-    }
   </style>
 </head>
 <body>
-
-<div id="testBanner">TEST MODE IS ON — DATA WILL BE MARKED AS TEST</div>
-
 <h2>Music Listening Study</h2>
 <p>Please listen to all three tracks in order. You may stop at any time.</p>
 
@@ -28,113 +17,105 @@
   <source id="audioSource" src="" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio>
-
 <div id="status"></div>
 
 <script>
-  // ================================================
-  // 🔧 TEST MODE SWITCH
-  // Set to true when testing — false for real study
-  // ================================================
-  const TEST_MODE = true;   // ← change to false for real experiment
+// === 1. Apps Script URLs ===
+const GROUP_ENDPOINT = "YOUR_DOGET_URL";  // Replace with your doGet URL
+const LOG_ENDPOINT   = "YOUR_DOPOST_URL"; // Replace with your doPost URL
 
-  // Show banner if in test mode
-  if (TEST_MODE) {
-    document.getElementById("testBanner").style.display = "block";
-  }
+// === 2. Song Orders ===
+const songOrders = {
+  A: [
+    {name:"Song 1 Loud", file:"song1_loud.mp3"},
+    {name:"Song 2 Standard", file:"song2_standard.mp3"},
+    {name:"Song 3 Quiet", file:"song3_quiet.mp3"}
+  ],
+  B: [
+    {name:"Song 1 Quiet", file:"song1_quiet.mp3"},
+    {name:"Song 2 Loud", file:"song2_loud.mp3"},
+    {name:"Song 3 Standard", file:"song3_standard.mp3"}
+  ],
+  C: [
+    {name:"Song 1 Standard", file:"song1_standard.mp3"},
+    {name:"Song 2 Quiet", file:"song2_quiet.mp3"},
+    {name:"Song 3 Loud", file:"song3_loud.mp3"}
+  ]
+};
 
-  // === 1. Google Apps Script Web App URL for group assignment ===
-  const GROUP_ENDPOINT = "YOUR_GROUP_ENDPOINT_URL";
+// === 3. Participant Info ===
+let participantID = "P" + Math.floor(Math.random() * 1000000);
+let participantGroup = "";
+let currentSongIndex = 0;
+let currentSongList = [];
 
-  // === 2. Song orders for groups A, B, C ===
-  const songOrders = {
-    A: [
-      {name: "Song 1", file: "song1_loud.mp3"},
-      {name: "Song 2", file: "song2_standard.mp3"},
-      {name: "Song 3", file: "song3_quiet.mp3"}
-    ],
-    B: [
-      {name: "Song 1", file: "song1_quiet.mp3"},
-      {name: "Song 2", file: "song2_loud.mp3"},
-      {name: "Song 3", file: "song3_standard.mp3"}
-    ],
-    C: [
-      {name: "Song 1", file: "song1_standard.mp3"},
-      {name: "Song 2", file: "song2_quiet.mp3"},
-      {name: "Song 3", file: "song3_loud.mp3"}
-    ]
-  };
+const player = document.getElementById("player");
+const source = document.getElementById("audioSource");
+const statusDiv = document.getElementById("status");
 
-  // === 3. Logging endpoint ===
-  const LOG_ENDPOINT = "YOUR_LOGGING_ENDPOINT_URL";
+// TEST MODE (hidden from participants)
+const testMode = false; // true only for debugging
 
-  // === 4. Participant ID ===
-  let participantID = "P" + Math.floor(Math.random() * 1000000);
-
-  let currentSongIndex = 0;
-  let currentSongList = [];
-
-  const player = document.getElementById("player");
-  const source = document.getElementById("audioSource");
-  const statusDiv = document.getElementById("status");
-
-  // === 5. Fetch group assignment ===
-  fetch(GROUP_ENDPOINT)
-    .then(r => r.json())
-    .then(data => {
-      const group = data.group;
-      console.log("Assigned group:", group);
-      currentSongList = songOrders[group];
-      statusDiv.textContent = "Your group: " + group + ". Playing Song 1...";
-      loadSong(currentSongIndex);
-    })
-    .catch(err => console.error("Error fetching group:", err));
-
-  // === 6. Load and play song ===
-  function loadSong(index){
-    if(index >= currentSongList.length) {
-      statusDiv.textContent = "All songs completed. Thank you!";
-      return;
-    }
-    source.src = currentSongList[index].file;
-    player.load();
-    player.play();
-    statusDiv.textContent = `Playing ${currentSongList[index].name} (${index+1} of ${currentSongList.length})`;
-    logEvent("play", 0, currentSongList[index].name);
-  }
-
-  // === 7. Logging function with TEST FLAG ===
-  function logEvent(eventType, timeValue, songName){
-    fetch(LOG_ENDPOINT, {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        participant: participantID,
-        event: eventType,
-        time: timeValue,
-        song: songName,
-        testMode: TEST_MODE, // ← THIS MARKS THE ROW AS TEST OR REAL
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString()
-      })
-    }).catch(err => console.error("Logging failed:", err));
-  }
-
-  // === 8. Track player events ===
-  player.onpause = () => logEvent("pause", player.currentTime, currentSongList[currentSongIndex].name);
-
-  player.onseeking = () => logEvent("seek", player.currentTime, currentSongList[currentSongIndex].name);
-
-  player.onended = () => {
-    logEvent("complete", player.duration, currentSongList[currentSongIndex].name);
-    currentSongIndex++;
+// === 4. Get participant group ===
+fetch(GROUP_ENDPOINT)
+  .then(r => r.json())
+  .then(data => {
+    participantGroup = data.group;
+    currentSongList = songOrders[participantGroup];
+    statusDiv.textContent = `Your group: ${participantGroup}. Playing first song...`;
     loadSong(currentSongIndex);
-  };
-
-  window.addEventListener("beforeunload", () => {
-    logEvent("exit", player.currentTime, currentSongList[currentSongIndex]?.name || "unknown");
+  })
+  .catch(err => {
+    console.error("Failed to get group:", err);
+    statusDiv.textContent = "Error retrieving group. Please refresh.";
   });
-</script>
 
+// === 5. Load & play song ===
+function loadSong(index) {
+  if(index >= currentSongList.length){
+    statusDiv.textContent = "All songs completed. Thank you!";
+    return;
+  }
+  const song = currentSongList[index];
+  source.src = song.file;
+  player.load();
+  player.play();
+  statusDiv.textContent = `Playing ${song.name} (Song ${index + 1} of ${currentSongList.length})`;
+  logEvent("play", 0, song.name);
+}
+
+// === 6. Logging function ===
+function logEvent(eventType, timeValue, songName){
+  const payload = {
+    participant: participantID,
+    group: participantGroup,
+    song: songName,
+    event: eventType,
+    time: timeValue,
+    testMode: testMode,
+    userAgent: navigator.userAgent,
+    timestamp: new Date().toISOString()
+  };
+  fetch(LOG_ENDPOINT, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  }).catch(err => console.error("Logging failed:", err));
+}
+
+// === 7. Track player events ===
+player.onpause = () => logEvent("pause", player.currentTime, currentSongList[currentSongIndex].name);
+player.onseeking = () => logEvent("seek", player.currentTime, currentSongList[currentSongIndex].name);
+player.onended = () => {
+  logEvent("complete", player.duration, currentSongList[currentSongIndex].name);
+  currentSongIndex++;
+  loadSong(currentSongIndex);
+};
+window.addEventListener("beforeunload", () => {
+  if(currentSongIndex < currentSongList.length) {
+    logEvent("exit", player.currentTime, currentSongList[currentSongIndex].name);
+  }
+});
+</script>
 </body>
 </html>
