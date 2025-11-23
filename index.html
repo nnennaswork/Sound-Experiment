@@ -131,13 +131,11 @@ if (TEST_MODE) {
   document.getElementById("testBanner").style.display = "block";
 }
 
-
 // --------------------------------------------------
 // ENDPOINTS
 // --------------------------------------------------
-const GROUP_ENDPOINT = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
-const LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
-
+const GROUP_ENDPOINT = "YOUR_DOGET_URL";
+const LOG_ENDPOINT = "YOUR_DOPOST_URL";
 
 // --------------------------------------------------
 // SONG ORDERS
@@ -165,7 +163,6 @@ const songOrders = {
   ]
 };
 
-
 // --------------------------------------------------
 // VARIABLES
 // --------------------------------------------------
@@ -178,23 +175,20 @@ const player = document.getElementById("player");
 const source  = document.getElementById("audioSource");
 const statusDiv = document.getElementById("status");
 
-
 // --------------------------------------------------
-// GET GROUP FROM GOOGLE SHEETS
+// GET GROUP
 // --------------------------------------------------
 fetch(GROUP_ENDPOINT)
   .then(r=>r.json())
   .then(data=>{
     participantGroup = data.group;
     currentSongList = songOrders[participantGroup];
-
     statusDiv.textContent = "Loading first song...";
     loadSong(0);
   })
   .catch(()=>{
     statusDiv.textContent = "Error retrieving group. Please refresh the page.";
   });
-
 
 // --------------------------------------------------
 // LOAD SONG
@@ -216,17 +210,14 @@ function loadSong(index){
   logEvent("play", 0, currentSongList[index].name);
 }
 
-
 // --------------------------------------------------
 // SKIP SONG BUTTON
 // --------------------------------------------------
 document.getElementById("skipButton").onclick = () => {
   logEvent("skip", player.currentTime, currentSongList[currentSongIndex].name);
-
   currentSongIndex++;
   loadSong(currentSongIndex);
 };
-
 
 // --------------------------------------------------
 // PLAYER EVENTS
@@ -239,7 +230,6 @@ player.onended = ()=>{
   currentSongIndex++;
   loadSong(currentSongIndex);
 };
-
 
 // --------------------------------------------------
 // LOGGING FUNCTION
@@ -261,17 +251,22 @@ function logEvent(type, time, song){
   });
 }
 
-
 // --------------------------------------------------
 // SHOW SURVEY
 // --------------------------------------------------
 function showSurvey(){
+  // Stop the music completely
+  player.pause();
+  player.currentTime = 0;
+
+  // Hide audio and skip button
   player.style.display = "none";
   document.getElementById("skipButton").style.display = "none";
+
+  // Show survey
   document.getElementById("survey").style.display = "block";
   statusDiv.textContent = "Please complete the survey.";
 }
-
 
 // --------------------------------------------------
 // SURVEY SUBMISSION
@@ -310,5 +305,3 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
 
 </body>
 </html>
-
-
