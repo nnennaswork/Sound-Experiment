@@ -80,8 +80,7 @@
 
     <label>4. Rank the songs by enjoyment:</label>
     <ol>
-      <li>
-        Song 1:
+      <li>Song 1:
         <select id="q6" required>
           <option value="">Rank</option>
           <option value="1">1 (most)</option>
@@ -89,9 +88,7 @@
           <option value="3">3 (least)</option>
         </select>
       </li>
-
-      <li>
-        Song 2:
+      <li>Song 2:
         <select id="q7" required>
           <option value="">Rank</option>
           <option value="1">1 (most)</option>
@@ -99,9 +96,7 @@
           <option value="3">3 (least)</option>
         </select>
       </li>
-
-      <li>
-        Song 3:
+      <li>Song 3:
         <select id="q8" required>
           <option value="">Rank</option>
           <option value="1">1 (most)</option>
@@ -115,21 +110,18 @@
   </form>
 </div>
 
-
 <script>
 // --------------------------------------------------
-// TEST MODE BANNER
+// TEST MODE
 // --------------------------------------------------
-const TEST_MODE = false;   // <-- Set true for testing
-if (TEST_MODE) {
-  document.getElementById("testBanner").style.display = "block";
-}
+const TEST_MODE = true; // set true for test
+if (TEST_MODE) document.getElementById("testBanner").style.display = "block";
 
 // --------------------------------------------------
-// ENDPOINTS
+// ENDPOINTS (Apps Script Web App)
 // --------------------------------------------------
-const GROUP_ENDPOINT = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
-const LOG_ENDPOINT   = "https://script.google.com/macros/s/AKfycbx8fQWJbGcfzymIK3bp_Ev2OeYaJ2qfvBdm3EnXivi2iQrlRtNGmTB2wSpW5mgjtmE9/exec";
+const GROUP_ENDPOINT = "https://script.google.com/macros/s/AKfycbzcOqQYZW407QAa91t8xFl4vccjsCVAIkq9Qai2TgpSVXv4lDBQa7WgeCS9Hvx0qge6/exec";
+const LOG_ENDPOINT = "https://script.google.com/macros/s/AKfycbzcOqQYZW407QAa91t8xFl4vccjsCVAIkq9Qai2TgpSVXv4lDBQa7WgeCS9Hvx0qge6/exec";
 
 // --------------------------------------------------
 // SONG ORDERS
@@ -138,12 +130,12 @@ const songOrders = {
   A: [
     {name:"Song 1 Loud", file:"144,000-1.mp3"},
     {name:"Song 2 Standard", file:"CHAKRa.mp3"},
-    {name:"Song 3 Quiet", file:"144,000-1.mp3"}
+    {name:"Song 3 Quiet", file:"CHAKRa.mp3"}
   ],
   B: [
-    {name:"Song 1 Quiet", file:"144,000-1.mp3"},
+    {name:"Song 1 Quiet", file:"sCHAKRa.mp3"},
     {name:"Song 2 Loud", file:"CHAKRa.mp3"},
-    {name:"Song 3 Standard", file:"144,000-1.mp3"}
+    {name:"Song 3 Standard", file:"CHAKRa.mp3"}
   ],
   C: [
     {name:"Song 1 Standard", file:"144,000-1.mp3"},
@@ -156,7 +148,7 @@ const songOrders = {
     {name:"Song 3 Standard", file:"144,000-1.mp3"}
   ]
 };
-  
+
 // --------------------------------------------------
 // VARIABLES
 // --------------------------------------------------
@@ -171,35 +163,31 @@ const statusDiv = document.getElementById("status");
 const skipButton = document.getElementById("skipButton");
 
 // --------------------------------------------------
-// GET GROUP
+// GET GROUP FROM Apps Script
 // --------------------------------------------------
 fetch(GROUP_ENDPOINT)
-  .then(r=>r.json())
-  .then(data=>{
+  .then(r => r.json())
+  .then(data => {
     participantGroup = data.group;
     currentSongList = songOrders[participantGroup];
     statusDiv.textContent = "Loading first song...";
     loadSong(0);
   })
-  .catch(()=>{
-    statusDiv.textContent = "Error retrieving group. Please refresh the page.";
+  .catch(() => {
+    statusDiv.textContent = "Error retrieving group. Please refresh.";
   });
 
 // --------------------------------------------------
 // LOAD SONG
 // --------------------------------------------------
 function loadSong(index){
-  if(index >= currentSongList.length){
-    showSurvey();
-    return;
-  }
+  if(index >= currentSongList.length){ showSurvey(); return; }
 
   source.src = currentSongList[index].file;
   player.load();
   player.play();
 
   skipButton.style.display = "inline-block";
-
   statusDiv.textContent = `Playing ${currentSongList[index].name} (${index+1}/3)`;
 
   logEvent("play", 0, currentSongList[index].name);
@@ -219,8 +207,7 @@ skipButton.onclick = () => {
 // --------------------------------------------------
 player.onpause = ()=> logEvent("pause", player.currentTime, currentSongList[currentSongIndex].name);
 player.onseeking = ()=> logEvent("seek", player.currentTime, currentSongList[currentSongIndex].name);
-
-player.onended = ()=>{
+player.onended = ()=> {
   logEvent("complete", player.duration, currentSongList[currentSongIndex].name);
   currentSongIndex++;
   loadSong(currentSongIndex);
@@ -260,7 +247,7 @@ function showSurvey(){
 // --------------------------------------------------
 // SURVEY SUBMISSION
 // --------------------------------------------------
-document.getElementById("surveyForm").addEventListener("submit", e=>{
+document.getElementById("surveyForm").addEventListener("submit", e => {
   e.preventDefault();
 
   const responses = {
@@ -274,9 +261,9 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
     rankSong3: document.getElementById("q8").value
   };
 
-  fetch(LOG_ENDPOINT,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
+  fetch(LOG_ENDPOINT, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
       type: "survey",
       participant: participantID,
@@ -284,12 +271,14 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
       responses: responses,
       testMode: TEST_MODE
     })
-  }).then(()=>{
-    statusDiv.textContent = TEST_MODE
-      ? "Survey submitted (TEST MODE). Data recorded in Google Sheets."
+  })
+  .then(() => {
+    statusDiv.textContent = TEST_MODE 
+      ? "Survey submitted (TEST MODE). Data recorded in Google Sheets." 
       : "Survey submitted. Thank you!";
     document.getElementById("survey").style.display = "none";
-  }).catch(err=>{
+  })
+  .catch(err => {
     statusDiv.textContent = "Error submitting survey. Please try again.";
     console.error("Submit error:", err);
   });
@@ -299,4 +288,3 @@ document.getElementById("surveyForm").addEventListener("submit", e=>{
 
 </body>
 </html>
-
