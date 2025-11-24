@@ -4,12 +4,11 @@
 <meta charset="UTF-8">
 <title>Music Listening Study</title>
 <style>
-  body { font-family: Arial; padding: 20px; }
-  .survey { display:none; margin-top:20px; }
-  textarea, input, select { width:100%; margin:5px 0; padding:5px; }
-  button { padding:10px 16px; font-size:16px; cursor:pointer; }
-  #skipButton { display:none; background:#444; color:white; border:none; margin-top:10px; }
-  #skipButton:hover { background:#000; }
+body { font-family: Arial; padding: 20px; }
+#survey { display: none; margin-top: 20px; }
+textarea { width: 100%; height: 80px; }
+input, select { width: 100%; padding: 5px; margin: 5px 0; }
+#startBtn, #skipButton { padding: 10px 16px; font-size: 16px; margin: 10px 0; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -17,25 +16,29 @@
 <h2>Music Listening Study</h2>
 <div id="status"></div>
 
-<audio id="player" controls></audio>
-<button id="skipButton">Skip Song</button>
+<button id="startBtn">Start Study</button>
 
-<div id="survey" class="survey">
-<h3>Survey Questions</h3>
-<form id="surveyForm">
-  <label>1. What lyrics do you remember? (Song 1)</label><textarea id="q1" required></textarea>
-  <label>Song 2</label><textarea id="q2" required></textarea>
-  <label>Song 3</label><textarea id="q3" required></textarea>
-  <label>2. How did you listen to the music?</label><input type="text" id="q4" required>
-  <label>3. Did you adjust the volume? If so, when/which song?</label><input type="text" id="q5" required>
-  <label>4. Rank songs by enjoyment:</label>
-  <ol>
-    <li>Song 1:<select id="q6" required><option value="">Rank</option><option>1</option><option>2</option><option>3</option></select></li>
-    <li>Song 2:<select id="q7" required><option value="">Rank</option><option>1</option><option>2</option><option>3</option></select></li>
-    <li>Song 3:<select id="q8" required><option value="">Rank</option><option>1</option><option>2</option><option>3</option></select></li>
-  </ol>
-  <button type="submit">Submit Survey</button>
-</form>
+<audio id="player" controls style="display:none;">
+  <source id="audioSource" src="">
+</audio>
+<button id="skipButton" style="display:none;">Skip Song</button>
+
+<div id="survey">
+  <h3>Survey Questions</h3>
+  <form id="surveyForm">
+    <label>1. Lyrics (Song 1)</label><textarea id="q1" required></textarea>
+    <label>Song 2</label><textarea id="q2" required></textarea>
+    <label>Song 3</label><textarea id="q3" required></textarea>
+    <label>2. Listening device</label><input id="q4" type="text" required>
+    <label>3. Volume adjust</label><input id="q5" type="text" required>
+    <label>4. Rank songs</label>
+    <ol>
+      <li>Song 1: <select id="q6" required><option value="">Rank</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></li>
+      <li>Song 2: <select id="q7" required><option value="">Rank</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></li>
+      <li>Song 3: <select id="q8" required><option value="">Rank</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></li>
+    </ol>
+    <button type="submit">Submit Survey</button>
+  </form>
 </div>
 
 <script>
@@ -43,74 +46,104 @@ let participantID = "P" + Math.floor(Math.random()*1000000);
 let participantGroup = "";
 let currentSongIndex = 0;
 let currentSongList = [];
-const player = document.getElementById("player");
-const skipButton = document.getElementById("skipButton");
-const statusDiv = document.getElementById("status");
 
-// Define your songs
 const songOrders = {
-  A:[{name:"Song1", file:"144,000-1.mp3"},{name:"Song2", file:"CHAKRa.mp3"},{name:"Song3", file:"144,000-1.mp3"}],
-  B:[{name:"Song1", file:"144,000-1.mp3"},{name:"Song2", file:"CHAKRa.mp3"},{name:"Song3", file:"144,000-1.mp3"}],
-  C:[{name:"Song1", file:"144,000-1.mp3"},{name:"Song2", file:"144,000-1.mp3"},{name:"Song3", file:"CHAKRa.mp3"}],
-  D:[{name:"Song1", file:"144,000-1.mp3"},{name:"Song2", file:"144,000-1.mp3"},{name:"Song3", file:"CHAKRa.mp3"}]
+  A: [
+    {name:"Song 1 Loud", file:"144,000-1.mp3"},
+    {name:"Song 2 Standard", file:"CHAKRa.mp3"},
+    {name:"Song 3 Quiet", file:"144,000-1.mp3"}
+  ],
+  B: [
+    {name:"Song 1 Quiet", file:"144,000-1.mp3"},
+    {name:"Song 2 Loud", file:"CHAKRa.mp3"},
+    {name:"Song 3 Standard", file:"144,000-1.mp3"}
+  ],
+  C: [
+    {name:"Song 1 Standard", file:"144,000-1.mp3"},
+    {name:"Song 2 Quiet", file:"144,000-1.mp3"},
+    {name:"Song 3 Loud", file:"144,000-1.mp3"}
+  ],
+  D: [
+    {name:"Song 1 Standard", file:"144,000-1.mp3"},
+    {name:"Song 2 Standard", file:"144,000-1.mp3"},
+    {name:"Song 3 Standard", file:"144,000-1.mp3"}
+  ]
 };
 
-// Get group from Apps Script
-google.script.run.withSuccessHandler(g=>{
-  participantGroup = g.group;
-  currentSongList = songOrders[participantGroup];
-  loadSong(0);
-}).getGroup();
+const startBtn = document.getElementById("startBtn");
+const player = document.getElementById("player");
+const source = document.getElementById("audioSource");
+const statusDiv = document.getElementById("status");
+const skipButton = document.getElementById("skipButton");
 
-function loadSong(index){
+startBtn.onclick = function() {
+  google.script.run.withSuccessHandler(group => {
+    participantGroup = group;
+    currentSongList = songOrders[participantGroup];
+    statusDiv.textContent = `Group: ${participantGroup}. Playing first song.`;
+    startBtn.style.display = "none";
+    player.style.display = "block";
+    skipButton.style.display = "inline-block";
+    loadSong(0);
+  }).getGroup(participantID);
+};
+
+function loadSong(index) {
   if(index >= currentSongList.length){
     showSurvey();
     return;
   }
-  const song = currentSongList[index];
-  player.src = song.file;
-  player.play().catch(()=>statusDiv.textContent="Click play to start");
-  skipButton.style.display = "inline-block";
-  statusDiv.textContent = `Playing ${song.name} (${index+1}/3)`;
-  recordEvent("play", 0, song.name);
-}
-
-skipButton.onclick = ()=>{
-  const song = currentSongList[currentSongIndex];
-  recordEvent("skip", player.currentTime, song.name);
-  currentSongIndex++;
-  loadSong(currentSongIndex);
-};
-
-player.onended = ()=>{
-  const song = currentSongList[currentSongIndex];
-  recordEvent("complete", player.duration, song.name);
-  currentSongIndex++;
-  loadSong(currentSongIndex);
-};
-
-function recordEvent(type,time,song){
-  google.script.run.recordEvent({
-    type:"event",
-    participant:participantID,
-    group:participantGroup,
-    song:song,
-    event:type,
-    time:time,
-    userAgent:navigator.userAgent,
-    testMode:true
+  currentSongIndex = index;
+  source.src = currentSongList[index].file;
+  player.load();
+  player.play();
+  statusDiv.textContent = `Playing ${currentSongList[index].name} (${index+1}/${currentSongList.length})`;
+  google.script.run.logEvent({
+    participant: participantID,
+    group: participantGroup,
+    song: currentSongList[index].name,
+    event: "play",
+    time: 0,
+    userAgent: navigator.userAgent,
+    testMode: false
   });
 }
 
-function showSurvey(){
+skipButton.onclick = function() {
+  google.script.run.logEvent({
+    participant: participantID,
+    group: participantGroup,
+    song: currentSongList[currentSongIndex].name,
+    event: "skip",
+    time: player.currentTime,
+    userAgent: navigator.userAgent,
+    testMode: false
+  });
+  loadSong(currentSongIndex + 1);
+};
+
+player.onended = function() {
+  google.script.run.logEvent({
+    participant: participantID,
+    group: participantGroup,
+    song: currentSongList[currentSongIndex].name,
+    event: "complete",
+    time: player.duration,
+    userAgent: navigator.userAgent,
+    testMode: false
+  });
+  loadSong(currentSongIndex + 1);
+};
+
+function showSurvey() {
   player.pause();
-  player.style.display="none";
-  skipButton.style.display="none";
-  document.getElementById("survey").style.display="block";
-  statusDiv.textContent="Please complete the survey.";
+  player.style.display = "none";
+  skipButton.style.display = "none";
+  document.getElementById("survey").style.display = "block";
+  statusDiv.textContent = "Please complete the survey.";
 }
 
-document.getElementById("surveyForm").onsubmit = e=>{
+document.getElementById("surveyForm").onsubmit = function(e) {
   e.preventDefault();
   const responses = {
     lyrics1: document.getElementById("q1").value,
@@ -122,11 +155,16 @@ document.getElementById("surveyForm").onsubmit = e=>{
     rankSong2: document.getElementById("q7").value,
     rankSong3: document.getElementById("q8").value
   };
-  google.script.run.withSuccessHandler(()=>{
-    statusDiv.textContent="Survey submitted. Thank you!";
-    document.getElementById("survey").style.display="none";
-  }).recordEvent({type:"survey", participant:participantID, group:participantGroup, responses:responses});
+  google.script.run.logSurvey({
+    participant: participantID,
+    group: participantGroup,
+    responses: responses,
+    testMode: false
+  });
+  statusDiv.textContent = "Survey submitted. Thank you!";
+  document.getElementById("survey").style.display = "none";
 };
 </script>
+
 </body>
 </html>
