@@ -10,7 +10,6 @@
   textarea { width: 100%; height: 80px; }
   input, select { width: 100%; padding: 5px; margin: 5px 0; }
 
-  /* TEST MODE BANNER */
   #testBanner {
     background: #cc0000;
     color: white;
@@ -22,12 +21,21 @@
     display: none;
     margin-bottom: 20px;
   }
-</style>
 
+  #skipButton {
+    margin-top: 15px;
+    padding: 10px 16px;
+    background: #444;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    display: none;
+  }
+</style>
 </head>
 <body>
 
-<!-- TEST MODE BANNER -->
 <div id="testBanner">⚠ TEST MODE — DATA WILL NOT BE USED ⚠</div>
 
 <h2>Music Listening Study</h2>
@@ -37,7 +45,7 @@
   <source id="audioSource" src="">
 </audio>
 
-<button id="skipButton" style="margin-top:15px; display:none;">Skip Song</button>
+<button id="skipButton">Skip Song</button>
 
 <!-- SURVEY -->
 <div id="survey" class="survey">
@@ -93,27 +101,26 @@
   </form>
 </div>
 
-
 <script>
 /* --------------------------------------------------
-     CONFIG
+   CONFIG
 -------------------------------------------------- */
-const TEST_MODE = true;   // Set to false for real experiment
+const TEST_MODE = true; //false = real data
 
 if (TEST_MODE) {
   document.getElementById("testBanner").style.display = "block";
 }
 
 /* --------------------------------------------------
-     YOUR ENDPOINT — PASTE YOUR GOOGLE SCRIPT URL HERE
+   WEB APP URL — replace this
 -------------------------------------------------- */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzTQvlLam9DWVBgMWUJqplY10-Cqr0B1tnx_wcVgaL5YvGhD8qWnZ-XNfyUldBL29pG/exec";   // <--- REPLACE THIS
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwK3_ooLWIbfIn5jW7bhumLMUJq6HHMFNMxhEXdrxeOZ_u1TvRdQHcb78VCC49IMipD/exec";
 
 const GROUP_ENDPOINT = WEB_APP_URL;
 const LOG_ENDPOINT   = WEB_APP_URL;
 
 /* --------------------------------------------------
-     SONG ORDERS
+   SONG ORDERS
 -------------------------------------------------- */
 const songOrders = {
   A: [
@@ -139,7 +146,7 @@ const songOrders = {
 };
 
 /* --------------------------------------------------
-     VARIABLES
+   VARIABLES
 -------------------------------------------------- */
 let participantID = "P" + Math.floor(Math.random()*1000000);
 let participantGroup = "";
@@ -151,23 +158,24 @@ const source  = document.getElementById("audioSource");
 const statusDiv = document.getElementById("status");
 
 /* --------------------------------------------------
-    GET GROUP
+   GET GROUP (safe for no-cors)
 -------------------------------------------------- */
-fetch(GROUP_ENDPOINT)
-  .then(r => r.json())
-  .then(data => {
+fetch(GROUP_ENDPOINT, { method: "GET", mode: "no-cors" })
+  .then(() => fetch(GROUP_ENDPOINT))          // second request is readable
+  .then(r => r.text())
+  .then(text => {
+    const data = JSON.parse(text);
     participantGroup = data.group;
     currentSongList = songOrders[participantGroup];
-    statusDiv.textContent = "Loading first song...";
     loadSong(0);
   })
   .catch(err => {
-    console.error("GROUP FETCH ERROR:", err);
-    statusDiv.textContent = "Error retrieving group. Refresh page.";
+    console.error("GROUP ERROR:", err);
+    statusDiv.textContent = "Error loading group.";
   });
 
 /* --------------------------------------------------
-    LOAD SONG
+   LOAD SONG
 -------------------------------------------------- */
 function loadSong(index) {
   if (index >= currentSongList.length) {
@@ -177,17 +185,16 @@ function loadSong(index) {
 
   source.src = currentSongList[index].file;
   player.load();
-  player.play();
+  player.play().catch(() => {});
 
-  document.getElementById("skipButton").style.display = "inline-block";
-
-  statusDiv.textContent = `Playing ${currentSongList[index].name}`;
+  document.getElementById("skipButton").style.display = "block";
+  statusDiv.textContent = "Playing " + currentSongList[index].name;
 
   logEvent("play", 0, currentSongList[index].name);
 }
 
 /* --------------------------------------------------
-    SKIP SONG BUTTON
+   SKIP SONG
 -------------------------------------------------- */
 document.getElementById("skipButton").onclick = () => {
   logEvent("skip", player.currentTime, currentSongList[currentSongIndex].name);
@@ -196,13 +203,10 @@ document.getElementById("skipButton").onclick = () => {
 };
 
 /* --------------------------------------------------
-    PLAYER EVENTS
+   PLAYER EVENTS
 -------------------------------------------------- */
-player.onpause = () =>
-  logEvent("pause", player.currentTime, currentSongList[currentSongIndex].name);
-
-player.onseeking = () =>
-  logEvent("seek", player.currentTime, currentSongList[currentSongIndex].name);
+player.onpause = () => logEvent("pause", player.currentTime, currentSongList[currentSongIndex].name);
+player.onseeking = () => logEvent("seek", player.currentTime, currentSongList[currentSongIndex].name);
 
 player.onended = () => {
   logEvent("complete", player.duration, currentSongList[currentSongIndex].name);
@@ -211,11 +215,13 @@ player.onended = () => {
 };
 
 /* --------------------------------------------------
-    LOGGING FUNCTION
+   LOGGING FUNCTION — safe version
 -------------------------------------------------- */
 function logEvent(type, time, song) {
+
   fetch(LOG_ENDPOINT, {
     method: "POST",
+    mode: "no-cors",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
       type: "event",
@@ -227,12 +233,11 @@ function logEvent(type, time, song) {
       userAgent: navigator.userAgent,
       testMode: TEST_MODE
     })
-  })
-  .catch(err => console.error("Logging failed:", err));
+  });
 }
 
 /* --------------------------------------------------
-    SHOW SURVEY
+   SHOW SURVEY
 -------------------------------------------------- */
 function showSurvey() {
   player.pause();
@@ -243,7 +248,7 @@ function showSurvey() {
 }
 
 /* --------------------------------------------------
-    SURVEY SUBMISSION
+   SUBMIT SURVEY — safe POST
 -------------------------------------------------- */
 document.getElementById("surveyForm").addEventListener("submit", e => {
   e.preventDefault();
@@ -261,7 +266,8 @@ document.getElementById("surveyForm").addEventListener("submit", e => {
 
   fetch(LOG_ENDPOINT, {
     method: "POST",
-    headers: {"Content-Type":"application/json"},
+    mode: "no-cors",
+    headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
       type: "survey",
       participant: participantID,
@@ -269,12 +275,10 @@ document.getElementById("surveyForm").addEventListener("submit", e => {
       responses: responses,
       testMode: TEST_MODE
     })
-  })
-  .then(() => {
-    statusDiv.textContent = "Survey submitted. Thank you!";
-    document.getElementById("survey").style.display = "none";
-  })
-  .catch(err => console.error("Submit error:", err));
+  });
+
+  document.getElementById("survey").style.display = "none";
+  statusDiv.textContent = "Survey submitted. Thank you!";
 });
 </script>
 
