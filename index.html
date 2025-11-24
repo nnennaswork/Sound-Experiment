@@ -1,286 +1,175 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Music Listening Study</title>
-
-<style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  .survey { display: none; margin-top: 20px; }
-  textarea { width: 100%; height: 80px; }
-  input, select { width: 100%; padding: 5px; margin: 5px 0; }
-
-  #testBanner {
-    background: #cc0000;
-    color: white;
-    padding: 16px;
-    font-size: 26px;
-    font-weight: bold;
-    text-align: center;
-    border: 3px solid white;
-    display: none;
-    margin-bottom: 20px;
-  }
-
-  #skipButton {
-    margin-top: 15px;
-    padding: 10px 16px;
-    background: #444;
-    color: white;
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    display: none;
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>Music Listening Study</title>
+  <style>
+    body { font-family: Arial, padding: 20px; }
+    #testBanner { background: #cc0000; color: white; padding: 16px; font-size: 26px; text-align:center; display: none; margin-bottom: 20px; }
+    #skipButton { margin-top:15px; padding:10px 16px; background:#444; color:white; border:none; font-size:16px; cursor:pointer; display:none; }
+    .survey { display: none; margin-top: 20px; }
+    textarea { width:100%; height:80px; }
+    input, select { width:100%; padding:5px; margin:5px 0; }
+  </style>
 </head>
 <body>
 
-<div id="testBanner">⚠ TEST MODE — DATA WILL NOT BE USED ⚠</div>
+  <div id="testBanner">⚠ TEST MODE — DATA WILL NOT BE USED ⚠</div>
+  <h2>Music Listening Study</h2>
+  <div id="status"></div>
 
-<h2>Music Listening Study</h2>
-<div id="status"></div>
+  <audio id="player" controls controlsList="nodownload"><source id="audioSource" src=""></audio>
+  <button id="skipButton">Skip Song</button>
 
-<audio id="player" controls controlsList="nodownload">
-  <source id="audioSource" src="">
-</audio>
+  <div id="survey" class="survey">
+    <h3>Survey Questions</h3>
+    <form id="surveyForm">
+      <label>1. What lyrics do you remember? (Song 1)</label><textarea id="q1" required></textarea>
+      <label>Song 2</label><textarea id="q2" required></textarea>
+      <label>Song 3</label><textarea id="q3" required></textarea>
+      <label>2. How did you listen to the music?</label><input id="q4" type="text" required>
+      <label>3. Did you adjust the volume? When/which song?</label><input id="q5" type="text" required>
+      <label>4. Rank the songs by enjoyment:</label>
+      <ol>
+        <li>Song 1: <select id="q6" required><option value="">Rank</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></li>
+        <li>Song 2: <select id="q7" required><option value="">Rank</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></li>
+        <li>Song 3: <select id="q8" required><option value="">Rank</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></li>
+      </ol>
+      <button type="submit">Submit Survey</button>
+    </form>
+  </div>
 
-<button id="skipButton">Skip Song</button>
+  <script>
+    const TEST_MODE = true;
+    if (TEST_MODE) document.getElementById("testBanner").style.display = "block";
 
-<!-- SURVEY -->
-<div id="survey" class="survey">
-  <h3>Survey Questions</h3>
-  <form id="surveyForm">
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwK3_ooLWIbfIn5jW7bhumLMUJq6HHMFNMxhEXdrxeOZ_u1TvRdQHcb78VCC49IMipD/exec";
 
-    <label>1. What lyrics do you remember? (Song 1)</label>
-    <textarea id="q1" required></textarea>
+    // Random group assignment (client-side)
+    const groups = ["A", "B", "C", "D"];
+    const participantGroup = groups[Math.floor(Math.random() * groups.length)];
 
-    <label>Song 2</label>
-    <textarea id="q2" required></textarea>
+    let participantID = "P" + Math.floor(Math.random() * 1000000);
+    let currentSongIndex = 0;
 
-    <label>Song 3</label>
-    <textarea id="q3" required></textarea>
+    const songOrders = {
+      A: [
+        {name:"Song 1 Loud", file:"144,000-1.mp3"},
+        {name:"Song 2 Standard", file:"CHAKRa.mp3"},
+        {name:"Song 3 Quiet", file:"144,000-1.mp3"}
+      ],
+      B: [
+        {name:"Song 1 Quiet", file:"144,000-1.mp3"},
+        {name:"Song 2 Loud", file:"CHAKRa.mp3"},
+        {name:"Song 3 Standard", file:"144,000-1.mp3"}
+      ],
+      C: [
+        {name:"Song 1 Standard", file:"144,000-1.mp3"},
+        {name:"Song 2 Quiet", file:"144,000-1.mp3"},
+        {name:"Song 3 Loud", file:"144,000-1.mp3"}
+      ],
+      D: [
+        {name:"Song 1 Standard", file:"144,000-1.mp3"},
+        {name:"Song 2 Standard", file:"144,000-1.mp3"},
+        {name:"Song 3 Standard", file:"144,000-1.mp3"}
+      ]
+    };
 
-    <label>2. How did you listen to the music?</label>
-    <input type="text" id="q4" required>
+    const currentSongList = songOrders[participantGroup];
+    const player = document.getElementById("player");
+    const source = document.getElementById("audioSource");
+    const statusDiv = document.getElementById("status");
+    const skipButton = document.getElementById("skipButton");
 
-    <label>3. Did you adjust the volume? When/which song?</label>
-    <input type="text" id="q5" required>
+    function loadSong(index) {
+      if (index >= currentSongList.length) {
+        showSurvey();
+        return;
+      }
+      currentSongIndex = index;
+      const song = currentSongList[index];
+      source.src = song.file;
+      player.load();
+      player.play().catch(() => {});
+      skipButton.style.display = "inline-block";
+      statusDiv.textContent = "Playing " + song.name;
+      logEvent("play", 0, song.name);
+    }
 
-    <label>4. Rank the songs by enjoyment:</label>
-    <ol>
-      <li>Song 1:
-        <select id="q6" required>
-          <option value="">Rank</option>
-          <option value="1">1 (most)</option>
-          <option value="2">2</option>
-          <option value="3">3 (least)</option>
-        </select>
-      </li>
+    skipButton.onclick = () => {
+      logEvent("skip", player.currentTime, currentSongList[currentSongIndex].name);
+      loadSong(currentSongIndex + 1);
+    };
 
-      <li>Song 2:
-        <select id="q7" required>
-          <option value="">Rank</option>
-          <option value="1">1 (most)</option>
-          <option value="2">2</option>
-          <option value="3">3 (least)</option>
-        </select>
-      </li>
+    player.onpause = () => {
+      logEvent("pause", player.currentTime, currentSongList[currentSongIndex].name);
+    };
 
-      <li>Song 3:
-        <select id="q8" required>
-          <option value="">Rank</option>
-          <option value="1">1 (most)</option>
-          <option value="2">2</option>
-          <option value="3">3 (least)</option>
-        </select>
-      </li>
-    </ol>
+    player.onseeking = () => {
+      logEvent("seek", player.currentTime, currentSongList[currentSongIndex].name);
+    };
 
-    <button type="submit">Submit Survey</button>
-  </form>
-</div>
+    player.onended = () => {
+      logEvent("complete", player.duration, currentSongList[currentSongIndex].name);
+      loadSong(currentSongIndex + 1);
+    };
 
-<script>
-/* --------------------------------------------------
-   CONFIG
--------------------------------------------------- */
-const TEST_MODE = true; //false = real data
+    function logEvent(type, time, song) {
+      fetch(WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          type: "event",
+          participant: participantID,
+          group: participantGroup,
+          song: song,
+          event: type,
+          time: time,
+          userAgent: navigator.userAgent,
+          testMode: TEST_MODE
+        })
+      });
+    }
 
-if (TEST_MODE) {
-  document.getElementById("testBanner").style.display = "block";
-}
+    function showSurvey() {
+      player.pause();
+      player.style.display = "none";
+      skipButton.style.display = "none";
+      document.getElementById("survey").style.display = "block";
+      statusDiv.textContent = "Please complete the survey.";
+    }
 
-/* --------------------------------------------------
-   WEB APP URL — replace this
--------------------------------------------------- */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwK3_ooLWIbfIn5jW7bhumLMUJq6HHMFNMxhEXdrxeOZ_u1TvRdQHcb78VCC49IMipD/exec";
+    document.getElementById("surveyForm").addEventListener("submit", e => {
+      e.preventDefault();
+      const responses = {
+        lyrics1: document.getElementById("q1").value,
+        lyrics2: document.getElementById("q2").value,
+        lyrics3: document.getElementById("q3").value,
+        listeningDevice: document.getElementById("q4").value,
+        volumeAdjust: document.getElementById("q5").value,
+        rankSong1: document.getElementById("q6").value,
+        rankSong2: document.getElementById("q7").value,
+        rankSong3: document.getElementById("q8").value
+      };
+      fetch(WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          type: "survey",
+          participant: participantID,
+          group: participantGroup,
+          responses: responses,
+          testMode: TEST_MODE
+        })
+      });
+      statusDiv.textContent = "Survey submitted — thank you!";
+      document.getElementById("survey").style.display = "none";
+    });
 
-const GROUP_ENDPOINT = WEB_APP_URL;
-const LOG_ENDPOINT   = WEB_APP_URL;
-
-/* --------------------------------------------------
-   SONG ORDERS
--------------------------------------------------- */
-const songOrders = {
-  A: [
-    {name:"Song 1 Loud", file:"144,000-1.mp3"},
-    {name:"Song 2 Standard", file:"CHAKRa.mp3"},
-    {name:"Song 3 Quiet", file:"144,000-1.mp3"}
-  ],
-  B: [
-    {name:"Song 1 Quiet", file:"144,000-1.mp3"},
-    {name:"Song 2 Loud", file:"CHAKRa.mp3"},
-    {name:"Song 3 Standard", file:"144,000-1.mp3"}
-  ],
-  C: [
-    {name:"Song 1 Standard", file:"144,000-1.mp3"},
-    {name:"Song 2 Quiet", file:"144,000-1.mp3"},
-    {name:"Song 3 Loud", file:"144,000-1.mp3"}
-  ],
-  D: [
-    {name:"Song 1 Standard", file:"144,000-1.mp3"},
-    {name:"Song 2 Standard", file:"144,000-1.mp3"},
-    {name:"Song 3 Standard", file:"144,000-1.mp3"}
-  ]
-};
-
-/* --------------------------------------------------
-   VARIABLES
--------------------------------------------------- */
-let participantID = "P" + Math.floor(Math.random()*1000000);
-let participantGroup = "";
-let currentSongIndex = 0;
-let currentSongList = [];
-
-const player = document.getElementById("player");
-const source  = document.getElementById("audioSource");
-const statusDiv = document.getElementById("status");
-
-/* --------------------------------------------------
-   GET GROUP (safe for no-cors)
--------------------------------------------------- */
-fetch(GROUP_ENDPOINT, { method: "GET", mode: "no-cors" })
-  .then(() => fetch(GROUP_ENDPOINT))          // second request is readable
-  .then(r => r.text())
-  .then(text => {
-    const data = JSON.parse(text);
-    participantGroup = data.group;
-    currentSongList = songOrders[participantGroup];
+    // Start the first song when the page loads
     loadSong(0);
-  })
-  .catch(err => {
-    console.error("GROUP ERROR:", err);
-    statusDiv.textContent = "Error loading group.";
-  });
-
-/* --------------------------------------------------
-   LOAD SONG
--------------------------------------------------- */
-function loadSong(index) {
-  if (index >= currentSongList.length) {
-    showSurvey();
-    return;
-  }
-
-  source.src = currentSongList[index].file;
-  player.load();
-  player.play().catch(() => {});
-
-  document.getElementById("skipButton").style.display = "block";
-  statusDiv.textContent = "Playing " + currentSongList[index].name;
-
-  logEvent("play", 0, currentSongList[index].name);
-}
-
-/* --------------------------------------------------
-   SKIP SONG
--------------------------------------------------- */
-document.getElementById("skipButton").onclick = () => {
-  logEvent("skip", player.currentTime, currentSongList[currentSongIndex].name);
-  currentSongIndex++;
-  loadSong(currentSongIndex);
-};
-
-/* --------------------------------------------------
-   PLAYER EVENTS
--------------------------------------------------- */
-player.onpause = () => logEvent("pause", player.currentTime, currentSongList[currentSongIndex].name);
-player.onseeking = () => logEvent("seek", player.currentTime, currentSongList[currentSongIndex].name);
-
-player.onended = () => {
-  logEvent("complete", player.duration, currentSongList[currentSongIndex].name);
-  currentSongIndex++;
-  loadSong(currentSongIndex);
-};
-
-/* --------------------------------------------------
-   LOGGING FUNCTION — safe version
--------------------------------------------------- */
-function logEvent(type, time, song) {
-
-  fetch(LOG_ENDPOINT, {
-    method: "POST",
-    mode: "no-cors",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      type: "event",
-      participant: participantID,
-      group: participantGroup,
-      song: song,
-      event: type,
-      time: time,
-      userAgent: navigator.userAgent,
-      testMode: TEST_MODE
-    })
-  });
-}
-
-/* --------------------------------------------------
-   SHOW SURVEY
--------------------------------------------------- */
-function showSurvey() {
-  player.pause();
-  player.style.display = "none";
-  document.getElementById("skipButton").style.display = "none";
-  document.getElementById("survey").style.display = "block";
-  statusDiv.textContent = "Please complete the survey.";
-}
-
-/* --------------------------------------------------
-   SUBMIT SURVEY — safe POST
--------------------------------------------------- */
-document.getElementById("surveyForm").addEventListener("submit", e => {
-  e.preventDefault();
-
-  const responses = {
-    lyrics1: document.getElementById("q1").value,
-    lyrics2: document.getElementById("q2").value,
-    lyrics3: document.getElementById("q3").value,
-    listeningDevice: document.getElementById("q4").value,
-    volumeAdjust: document.getElementById("q5").value,
-    rankSong1: document.getElementById("q6").value,
-    rankSong2: document.getElementById("q7").value,
-    rankSong3: document.getElementById("q8").value
-  };
-
-  fetch(LOG_ENDPOINT, {
-    method: "POST",
-    mode: "no-cors",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      type: "survey",
-      participant: participantID,
-      group: participantGroup,
-      responses: responses,
-      testMode: TEST_MODE
-    })
-  });
-
-  document.getElementById("survey").style.display = "none";
-  statusDiv.textContent = "Survey submitted. Thank you!";
-});
-</script>
-
+  </script>
 </body>
 </html>
