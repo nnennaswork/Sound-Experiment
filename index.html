@@ -93,7 +93,7 @@
       player.load();
       player.play().catch(() => {});
       skipButton.style.display = "inline-block";
-      statusDiv.textContent = "Playing " + song.name;
+      statusDiv.textContent = "Playing (If using mobile, zoom in for player) " + song.name;
       logEvent("play", 0, song.name);
     }
 
