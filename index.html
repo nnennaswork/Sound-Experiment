@@ -53,28 +53,28 @@
     let participantID = "P" + Math.floor(Math.random() * 1000000);
     let currentSongIndex = 0;
 
-    const songOrders = {
-      A: [
-        {name:"Song 1", file:"MLS-i85-LOUD.mp3"},
-        {name:"Song 2", file:"MLS-LIGHT-mid.mp3"},
-        {name:"Song 3", file:"MLS-Signal-Low.mp3"}
-      ],
-      B: [
-        {name:"Song 1", file:"MLS-i85-LOW.mp3"},
-        {name:"Song 2", file:"MLS-LIGHT-LOUD.mp3"},
-        {name:"Song 3", file:"MLS-Signal-Mid.mp3"}
-      ],
-      C: [
-        {name:"Song 1", file:"MLS-i85-MID.mp3"},
-        {name:"Song 2", file:"MLS-LIGHT-LOW.mp3"},
-        {name:"Song 3", file:"MLS-Signal-Loud.mp3"}
-      ],
-      D: [
-        {name:"Song 1", file:"MLS-i85-MID.mp3"},
-        {name:"Song 2", file:"MLS-LIGHT-mid.mp3"},
-        {name:"Song 3", file:"MLS-Signal-Mid.mp3"}
-      ]
-    };
+    // const songOrders = {
+    //   A: [
+    //     {name:"Song 1", file:"MLS-i85-LOUD.mp3"},
+    //     {name:"Song 2", file:"MLS-LIGHT-mid.mp3"},
+    //     {name:"Song 3", file:"MLS-Signal-Low.mp3"}
+    //   ],
+    //   B: [
+    //     {name:"Song 1", file:"MLS-i85-LOW.mp3"},
+    //     {name:"Song 2", file:"MLS-LIGHT-LOUD.mp3"},
+    //     {name:"Song 3", file:"MLS-Signal-Mid.mp3"}
+    //   ],
+    //   C: [
+    //     {name:"Song 1", file:"MLS-i85-MID.mp3"},
+    //     {name:"Song 2", file:"MLS-LIGHT-LOW.mp3"},
+    //     {name:"Song 3", file:"MLS-Signal-Loud.mp3"}
+    //   ],
+    //   D: [
+    //     {name:"Song 1", file:"MLS-i85-MID.mp3"},
+    //     {name:"Song 2", file:"MLS-LIGHT-mid.mp3"},
+    //     {name:"Song 3", file:"MLS-Signal-Mid.mp3"}
+    //   ]
+    // };
 
     const currentSongList = songOrders[participantGroup];
     const player = document.getElementById("player");
